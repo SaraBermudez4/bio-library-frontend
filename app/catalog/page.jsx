@@ -18,12 +18,22 @@ import { Alert, AlertDescription } from '@/lib/components/ui/alert';
 import { GPA_LIMIT, ROLE_ADMIN } from '@/lib/constants';
 import { AlertTriangle, ShieldAlert } from 'lucide-react';
 
+const PAGE_SIZE = 12;
+
 export default function CatalogPage() {
   const { user } = useAuth();
   const isAdmin = user?.role === ROLE_ADMIN;
 
-  const { data: books, isLoading, error, refetch: refetchBooks } = useFetch(() => bookService.getAll(), []);
+  const [page, setPage] = useState(0);
+  const { data, isLoading, error, refetch: refetchBooks } = useFetch(
+    () => bookService.getAll({ page, size: PAGE_SIZE }),
+    [page],
+  );
   const { data: myLoans, refetch: refetchLoans } = useFetch(() => loanService.myLoans(), []);
+
+  const books = data?.content ?? [];
+  const totalPages = data?.totalPages ?? 1;
+  const totalElements = data?.totalElements ?? 0;
 
   const borrowAsync = useAsync();
   const bookMutate = useAsync();
@@ -44,13 +54,18 @@ export default function CatalogPage() {
   }, [user, activeLoans]);
 
   const filtered = useMemo(
-    () => (books ?? []).filter(
+    () => books.filter(
       (b) =>
         b.title.toLowerCase().includes(search.toLowerCase()) ||
         `${b.author.name} ${b.author.lastName}`.toLowerCase().includes(search.toLowerCase())
     ),
     [books, search]
   );
+
+  function handleSearchChange(e) {
+    setSearch(e.target.value);
+    setPage(0);
+  }
 
   async function handleBorrow() {
     const result = await borrowAsync.execute(() => loanService.borrow(borrowTarget.id));
@@ -84,7 +99,7 @@ export default function CatalogPage() {
         title="Catálogo"
         action={
           isAdmin && (
-            <Button onClick={() => setBookFormState({ show: true, book: null })}>
+            <Button disabled title="Registro no disponible aún">
               + Registrar libro
             </Button>
           )
@@ -116,7 +131,7 @@ export default function CatalogPage() {
         placeholder="Buscar por título o autor…"
         className="mb-6"
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={handleSearchChange}
       />
 
       {filtered.length === 0 ? (
@@ -132,7 +147,7 @@ export default function CatalogPage() {
                 actions={
                   isAdmin ? (
                     <>
-                      <Button variant="outline" size="sm" onClick={() => setBookFormState({ show: true, book })}>
+                      <Button variant="outline" size="sm" disabled title="Edición no disponible aún">
                         Editar
                       </Button>
                       <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(book)}>
@@ -154,6 +169,30 @@ export default function CatalogPage() {
               />
             );
           })}
+        </div>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center gap-3 mt-8">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page === 0}
+            onClick={() => setPage((p) => p - 1)}
+          >
+            ← Anterior
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Página {page + 1} de {totalPages} · {totalElements} libros
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            Siguiente →
+          </Button>
         </div>
       )}
 

@@ -8,7 +8,6 @@ import { studentService } from '@/lib/services';
 import { useAuth } from '@/lib/context/AuthContext';
 import { PageHeader } from '@/lib/components/shared/PageHeader';
 import { ConfirmModal } from '@/lib/components/shared/ConfirmModal';
-import { StudentFormModal } from '@/lib/components/shared/StudentFormModal';
 import { ErrorAlert } from '@/lib/components/shared/ErrorAlert';
 import { EmptyState } from '@/lib/components/shared/EmptyState';
 import { LoadingSpinner } from '@/lib/components/shared/LoadingSpinner';
@@ -30,8 +29,6 @@ export default function AdminStudentsPage() {
   const [search, setSearch] = useState('');
   const [sanctionTarget, setSanctionTarget] = useState(null);
   const [sanctionDate, setSanctionDate] = useState('');
-  const [showCreate, setShowCreate] = useState(false);
-
   const { data, isLoading, error, refetch } = useFetch(
     () => studentService.getAll({ page, size: PAGE_SIZE, university: user?.university }),
     [page, user?.university],
@@ -51,8 +48,6 @@ export default function AdminStudentsPage() {
 
   const totalPages = data?.totalPages ?? 1;
   const mutate = useAsync();
-  const createAsync = useAsync();
-
   async function handleSanctionToggle() {
     const active = !sanctionTarget.hasSanction;
     const endDate = active && sanctionDate ? `${sanctionDate}T00:00:00` : null;
@@ -65,21 +60,9 @@ export default function AdminStudentsPage() {
     refetch();
   }
 
-  async function handleCreate(formData) {
-    const result = await createAsync.execute(() => studentService.create(formData));
-    if (!result) return;
-    setShowCreate(false);
-    refetch();
-  }
-
   return (
     <>
-      <PageHeader
-        title="Gestión de estudiantes"
-        action={
-          <Button onClick={() => setShowCreate(true)}>+ Crear estudiante</Button>
-        }
-      />
+      <PageHeader title="Gestión de estudiantes" />
       <ErrorAlert error={error} />
 
       <Input
@@ -199,13 +182,6 @@ export default function AdminStudentsPage() {
         )}
       </ConfirmModal>
 
-      <StudentFormModal
-        show={showCreate}
-        onHide={() => setShowCreate(false)}
-        onSubmit={handleCreate}
-        isLoading={createAsync.isLoading}
-        error={createAsync.error}
-      />
     </>
   );
 }

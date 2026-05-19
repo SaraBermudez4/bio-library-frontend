@@ -22,7 +22,8 @@ import {
 } from '@/lib/components/ui/table';
 
 export default function AdminBooksPage() {
-  const { data: books, isLoading, error, refetch } = useFetch(() => bookService.getAll(), []);
+  const { data, isLoading, error, refetch } = useFetch(() => bookService.getAll(), []);
+  const books = data?.content ?? [];
   const mutate = useAsync();
 
   const [formState, setFormState] = useState({ show: false, book: null });
@@ -49,7 +50,7 @@ export default function AdminBooksPage() {
       <PageHeader
         title="Gestión de libros"
         action={
-          <Button onClick={() => setFormState({ show: true, book: null })}>
+          <Button disabled title="Registro no disponible aún">
             + Registrar libro
           </Button>
         }
@@ -59,7 +60,7 @@ export default function AdminBooksPage() {
 
       {isLoading ? (
         <LoadingSpinner />
-      ) : books?.length === 0 ? (
+      ) : books.length === 0 ? (
         <EmptyState message="No hay libros registrados." />
       ) : (
         <div className="rounded-md border">
@@ -74,7 +75,7 @@ export default function AdminBooksPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {books?.map((book) => (
+              {books.map((book) => (
                 <TableRow key={book.id}>
                   <TableCell className="font-medium">{book.title}</TableCell>
                   <TableCell>{book.author.name} {book.author.lastName}</TableCell>
@@ -89,6 +90,8 @@ export default function AdminBooksPage() {
                       variant="outline"
                       size="sm"
                       className="mr-2"
+                      disabled
+                      title="Edición no disponible aún"
                       onClick={() => setFormState({ show: true, book })}
                     >
                       Editar
