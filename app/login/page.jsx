@@ -1,10 +1,11 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Library, Loader2 } from 'lucide-react';
+import { Library, Loader2, CheckCircle2 } from 'lucide-react';
 import { PublicGuard } from '@/lib/components/common/Guards';
 import { FormField } from '@/lib/components/shared/FormField';
 import { ErrorAlert } from '@/lib/components/shared/ErrorAlert';
@@ -19,7 +20,29 @@ import { ROLE_ADMIN } from '@/lib/constants';
 function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { execute, isLoading, error } = useAsync();
+  const [registered, setRegistered] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get('registered') === 'true') {
+      setRegistered(true);
+
+      const url = new URL(window.location.href);
+      url.searchParams.delete('registered');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!registered) return;
+
+    const timer = setTimeout(() => {
+      setRegistered(false);
+    }, 2800);
+
+    return () => clearTimeout(timer);
+  }, [registered]);
 
   const {
     register,
@@ -45,6 +68,12 @@ function LoginForm() {
           <p className="text-sm text-muted-foreground">Ingresa a tu cuenta universitaria</p>
         </CardHeader>
         <CardContent>
+          {registered && (
+            <div className="flex items-center gap-2 rounded-md border border-green-500 bg-green-500/10 px-3 py-2 text-sm text-green-600 dark:text-green-400 mb-4">
+              <CheckCircle2 className="size-4 shrink-0" />
+              Estudiante creado exitosamente
+            </div>
+          )}
           <ErrorAlert error={error} />
           <form onSubmit={handleSubmit(onSubmit)} noValidate>
             <FormField label="Email" name="email" type="email" register={register} error={errors.email} placeholder="correo@universidad.edu" />

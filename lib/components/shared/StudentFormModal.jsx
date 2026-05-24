@@ -48,13 +48,6 @@ export function StudentFormModal({ show, onHide, onSubmit, isLoading, error }) {
                 placeholder="1020100001" />
             </div>
 
-            <div className="grid grid-cols-2 gap-x-3">
-              <FormField label="Nombre" name="name" register={register} error={errors.name}
-                placeholder="Carlos" />
-              <FormField label="Apellido" name="lastName" register={register} error={errors.lastName}
-                placeholder="García" />
-            </div>
-
             <FormField label="Email institucional" name="email" type="email"
               register={register} error={errors.email}
               placeholder="carlos.garcia@itm.edu.co" />

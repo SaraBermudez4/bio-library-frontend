@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/lib/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
+import { ErrorAlert } from './ErrorAlert';
 
 const variantMap = { danger: 'destructive', success: 'default', primary: 'default' };
 
@@ -21,6 +22,7 @@ export function ConfirmModal({
   confirmLabel = 'Confirmar',
   variant = 'danger',
   isLoading = false,
+  error,
 }) {
   const btnVariant = variantMap[variant] ?? 'default';
 
@@ -31,6 +33,7 @@ export function ConfirmModal({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         <div className="text-sm text-muted-foreground">{children}</div>
+        <ErrorAlert error={error} />
         <DialogFooter>
           <Button variant="outline" onClick={onHide} disabled={isLoading}>
             Cancelar

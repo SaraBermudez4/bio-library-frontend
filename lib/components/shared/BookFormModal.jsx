@@ -27,8 +27,18 @@ import { FormField } from './FormField';
 import { ErrorAlert } from './ErrorAlert';
 import { cn } from '@/lib/utils';
 
-export function BookFormModal({ show, onHide, onSubmit, book, isLoading, error }) {
+// categories: string[] from GET /v1/books/categories, or null while loading.
+// Falls back to the static BOOK_CATEGORIES constant when not provided.
+export function BookFormModal({ show, onHide, onSubmit, book, isLoading, error, categories }) {
   const isEdit = !!book;
+
+  const categoryOptions = categories
+    ? categories.map((c) => {
+        const found = BOOK_CATEGORIES.find((bc) => bc.value === c);
+        return found ?? { value: c, label: c };
+      })
+    : BOOK_CATEGORIES;
+
   const {
     register,
     handleSubmit,
@@ -42,16 +52,25 @@ export function BookFormModal({ show, onHide, onSubmit, book, isLoading, error }
       reset(
         book
           ? {
-            title: book.title,
-            author: `${book.author.name} ${book.author.lastName}`.trim(),
-            isbn: book.isbn,
-            category: book.category ?? '',
-            synopsis: book.synopsis,
-            pdfUrl: book.pdfUrl,
-            coverImageUrl: book.coverImageUrl ?? '',
-            maxConcurrentLoans: book.license.maxConcurrentLoans,
-          }
-          : { title: '', author: '', isbn: '', category: '', synopsis: '', pdfUrl: '', coverImageUrl: '', maxConcurrentLoans: 1 },
+              title: book.title,
+              author: `${book.author.name} ${book.author.lastName}`.trim(),
+              isbn: book.isbn,
+              category: book.category ?? '',
+              synopsis: book.synopsis,
+              pdfUrl: book.pdfUrl,
+              coverImageUrl: book.coverImageUrl ?? '',
+              maxConcurrentLoans: book.license.maxConcurrentLoans,
+            }
+          : {
+              title: '',
+              author: '',
+              isbn: '',
+              category: '',
+              synopsis: '',
+              pdfUrl: '',
+              coverImageUrl: '',
+              maxConcurrentLoans: 1,
+            },
       );
     }
   }, [show, book, reset]);
@@ -91,12 +110,12 @@ export function BookFormModal({ show, onHide, onSubmit, book, isLoading, error }
                     <SelectTrigger
                       id="category"
                       aria-invalid={!!errors.category}
-                      className={cn(errors.category && 'border-destructive')}
+                      className={cn('w-full', errors.category && 'border-destructive')}
                     >
                       <SelectValue placeholder="Selecciona una categoría" />
                     </SelectTrigger>
                     <SelectContent>
-                      {BOOK_CATEGORIES.map((c) => (
+                      {categoryOptions.map((c) => (
                         <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                       ))}
                     </SelectContent>

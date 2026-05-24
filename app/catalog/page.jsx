@@ -16,6 +16,7 @@ import { Button } from '@/lib/components/ui/button';
 import { Input } from '@/lib/components/ui/input';
 import { Alert, AlertDescription } from '@/lib/components/ui/alert';
 import { GPA_LIMIT, ROLE_ADMIN } from '@/lib/constants';
+import { borrowErrorMessage } from '@/lib/utils/error';
 import { AlertTriangle, ShieldAlert } from 'lucide-react';
 
 const PAGE_SIZE = 12;
@@ -43,7 +44,7 @@ export default function CatalogPage() {
   const [bookFormState, setBookFormState] = useState({ show: false, book: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const activeLoans = myLoans?.length ?? 0;
+  const activeLoans = myLoans?.filter((l) => l.active !== false).length ?? 0;
 
   const getBorrowState = useCallback((book) => {
     const available = book.license.activeLoanCount < book.license.maxConcurrentLoans;
@@ -68,7 +69,11 @@ export default function CatalogPage() {
   }
 
   async function handleBorrow() {
-    const result = await borrowAsync.execute(() => loanService.borrow(borrowTarget.id));
+    const result = await borrowAsync.execute(() =>
+      loanService.borrow(borrowTarget.id).catch((err) => {
+        throw new Error(borrowErrorMessage(err));
+      }),
+    );
     if (!result) return;
     setBorrowTarget(null);
     refetchBooks();
@@ -99,7 +104,7 @@ export default function CatalogPage() {
         title="Catálogo"
         action={
           isAdmin && (
-            <Button disabled title="Registro no disponible aún">
+            <Button onClick={() => setBookFormState({ show: true, book: null })}>
               + Registrar libro
             </Button>
           )
@@ -147,7 +152,7 @@ export default function CatalogPage() {
                 actions={
                   isAdmin ? (
                     <>
-                      <Button variant="outline" size="sm" disabled title="Edición no disponible aún">
+                      <Button variant="outline" size="sm" onClick={() => setBookFormState({ show: true, book })}>
                         Editar
                       </Button>
                       <Button variant="destructive" size="sm" onClick={() => setDeleteTarget(book)}>

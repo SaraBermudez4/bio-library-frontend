@@ -5,8 +5,6 @@
 {
   "id": 10,
   "dni": "1020100001",
-  "name": "Carlos",
-  "lastName": "Garcia",
   "email": "carlos.garcia@itm.edu.co",
   "phoneNumber": "+573012345678",
   "role": "STUDENT | ADMIN",

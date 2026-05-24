@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFetch } from '@/lib/hooks/useFetch';
 import { useAsync } from '@/lib/hooks/useAsync';
 import { bookService } from '@/lib/services';
@@ -12,6 +12,7 @@ import { EmptyState } from '@/lib/components/shared/EmptyState';
 import { LoadingSpinner } from '@/lib/components/shared/LoadingSpinner';
 import { Button } from '@/lib/components/ui/button';
 import { Badge } from '@/lib/components/ui/badge';
+import { Alert, AlertDescription } from '@/lib/components/ui/alert';
 import {
   Table,
   TableBody,
@@ -23,26 +24,88 @@ import {
 
 export default function AdminBooksPage() {
   const { data, isLoading, error, refetch } = useFetch(() => bookService.getAll(), []);
-  const books = data?.content ?? [];
-  const mutate = useAsync();
+  const { data: categories } = useFetch(() => bookService.getCategories(), []);
 
+  const saveBook = useAsync();
+  const deleteBook = useAsync();
+
+  const [localBooks, setLocalBooks] = useState(null);
   const [formState, setFormState] = useState({ show: false, book: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [successMsg, setSuccessMsg] = useState('');
+  const successTimer = useRef(null);
+
+  useEffect(() => {
+    if (data?.content) setLocalBooks(data.content);
+  }, [data]);
+
+  const books = localBooks ?? data?.content ?? [];
+
+  function showSuccess(msg) {
+    if (successTimer.current) clearTimeout(successTimer.current);
+    setSuccessMsg(msg);
+    successTimer.current = setTimeout(() => setSuccessMsg(''), 4000);
+  }
+
+  useEffect(() => () => { if (successTimer.current) clearTimeout(successTimer.current); }, []);
+
+  function openCreate() {
+    saveBook.reset();
+    setFormState({ show: true, book: null });
+  }
+
+  function openEdit(book) {
+    saveBook.reset();
+    setFormState({ show: true, book });
+  }
+
+  function closeForm() {
+    setFormState({ show: false, book: null });
+    saveBook.reset();
+  }
 
   async function handleSubmit(data) {
-    const result = formState.book
-      ? await mutate.execute(() => bookService.update(formState.book.id, data))
-      : await mutate.execute(() => bookService.create(data));
+    const isEdit = !!formState.book;
+    const result = isEdit
+      ? await saveBook.execute(() => bookService.update(formState.book.id, data))
+      : await saveBook.execute(() => bookService.create(data));
     if (!result) return;
-    setFormState({ show: false, book: null });
+    closeForm();
+    showSuccess(isEdit ? 'Libro actualizado correctamente.' : 'Libro registrado correctamente.');
     refetch();
   }
 
+  function openDelete(book) {
+    deleteBook.reset();
+    setDeleteTarget(book);
+  }
+
   async function handleDelete() {
-    const result = await mutate.execute(() => bookService.remove(deleteTarget.id));
-    if (!result) return;
+    if (deleteBook.isLoading) return;
+    const id = deleteTarget.id;
+    let axiosError = null;
+
+    const result = await deleteBook.execute(() =>
+      bookService.remove(id).catch((err) => {
+        axiosError = err;
+        throw err;
+      })
+    );
+
+    if (result === null) {
+      if (axiosError?.response?.status === 404) {
+        setLocalBooks((prev) => (prev ?? []).filter((b) => b.id !== id));
+        setDeleteTarget(null);
+        deleteBook.reset();
+        showSuccess('El libro ya no existía en el catálogo y fue removido de la lista.');
+      }
+      return;
+    }
+
+    setLocalBooks((prev) => (prev ?? []).filter((b) => b.id !== id));
     setDeleteTarget(null);
-    refetch();
+    deleteBook.reset();
+    showSuccess('Libro eliminado correctamente.');
   }
 
   return (
@@ -50,11 +113,17 @@ export default function AdminBooksPage() {
       <PageHeader
         title="Gestión de libros"
         action={
-          <Button disabled title="Registro no disponible aún">
+          <Button onClick={openCreate}>
             + Registrar libro
           </Button>
         }
       />
+
+      {successMsg && (
+        <Alert className="mb-4 border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+          <AlertDescription>{successMsg}</AlertDescription>
+        </Alert>
+      )}
 
       <ErrorAlert error={error} />
 
@@ -90,16 +159,14 @@ export default function AdminBooksPage() {
                       variant="outline"
                       size="sm"
                       className="mr-2"
-                      disabled
-                      title="Edición no disponible aún"
-                      onClick={() => setFormState({ show: true, book })}
+                      onClick={() => openEdit(book)}
                     >
                       Editar
                     </Button>
                     <Button
                       variant="destructive"
                       size="sm"
-                      onClick={() => setDeleteTarget(book)}
+                      onClick={() => openDelete(book)}
                     >
                       Eliminar
                     </Button>
@@ -113,11 +180,12 @@ export default function AdminBooksPage() {
 
       <BookFormModal
         show={formState.show}
-        onHide={() => setFormState({ show: false, book: null })}
+        onHide={closeForm}
         onSubmit={handleSubmit}
         book={formState.book}
-        isLoading={mutate.isLoading}
-        error={mutate.error}
+        isLoading={saveBook.isLoading}
+        error={saveBook.error}
+        categories={categories}
       />
 
       <ConfirmModal
@@ -127,7 +195,8 @@ export default function AdminBooksPage() {
         title="Eliminar libro"
         confirmLabel="Eliminar"
         variant="danger"
-        isLoading={mutate.isLoading}
+        isLoading={deleteBook.isLoading}
+        error={deleteBook.error}
       >
         ¿Deseas eliminar <strong>{deleteTarget?.title}</strong>? Esta acción no se puede deshacer.
       </ConfirmModal>
