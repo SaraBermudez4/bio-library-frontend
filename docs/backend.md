@@ -4,8 +4,11 @@ El backend de BioLibrary esta compuesto por microservicios Java (Spring Boot) co
 
 ## Microservicios y puertos
 
+- **api-gateway** (8090)
+  - Punto de entrada único del sistema. Valida JWT, aplica CORS y enruta al servicio correspondiente.
+  - El frontend **solo** habla con este puerto.
 - **user** (8080)
-  - Registro publico, autenticacion y perfil de usuarios.
+  - Registro de estudiantes (ruta pública), autenticacion y perfil de usuarios.
   - Endpoints de listado/sanciones requieren rol ADMIN.
   - Integra con `university-mock` para validar datos academicos.
 - **university-mock** (8081)
@@ -15,6 +18,7 @@ El backend de BioLibrary esta compuesto por microservicios Java (Spring Boot) co
 - **loans** (8083)
   - Prestamos, reglas de negocio, devolucion y uso.
   - Integra con `catalog` via Feign para actualizar conteo de licencias.
+  - Integra con `user` via Feign para validar sanciones y obtener datos de contacto.
 - **notification** (8084)
   - Recibe eventos por RabbitMQ y envia notificaciones (SMS via Twilio).
 
@@ -35,8 +39,12 @@ El backend de BioLibrary esta compuesto por microservicios Java (Spring Boot) co
 **catalog**
 - `GET /api/v1/books`
 - `GET /api/v1/books/{id}`
+- `GET /api/v1/books/isbn/{isbn}`
+- `GET /api/v1/books/categories`
+- `POST /api/v1/books`
+- `PUT /api/v1/books/{id}`
+- `DELETE /api/v1/books/{id}`
 - `PATCH /api/v1/books/{id}/loan-count`
-- CRUD completo de libros: pendiente en backend.
 
 **loans**
 - `POST /api/v1/loans`
@@ -51,11 +59,11 @@ El backend de BioLibrary esta compuesto por microservicios Java (Spring Boot) co
 ## Reglas de negocio (backend)
 
 - GPA < 3.2 solo permite 1 prestamo activo.
-- Prestamo dura 10 dias por defecto.
+- Prestamo dura 10 dias por defecto; vence automaticamente a los 15 dias (job cada 5 min).
 - Licencias concurrentes validadas en `catalog`.
 - Validacion academica al registrar estudiantes (email, DNI y matricula activa).
-- Validacion de sanciones en `loans`: pendiente.
-- Expiracion por inactividad: en implementacion.
+- Validacion de sanciones en `loans` via Feign a `user` → 403 si sancion activa.
+- Expiracion por inactividad: aviso a 2 dias sin usar, revocacion a 3 dias (jobs en `loans`).
 
 ## Variables de entorno
 

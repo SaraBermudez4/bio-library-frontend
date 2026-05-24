@@ -1,48 +1,43 @@
 # Integración Backend
 
-## Microservicios
-
-- **catalog**: Listado y detalle de libros, control de licencias.
-- **loans**: Préstamos, reglas de negocio, devolución.
-- **user**: Registro publico, login y perfil.
-- **notification**: Notificaciones de eventos de préstamo.
-- **university-mock**: Validación de matrícula y GPA.
-
 ## Comunicación
-- El frontend consume endpoints REST expuestos por los microservicios principales.
-- El JWT se almacena en el frontend y se envía en cada request autenticada.
-- El proxy de Next.js evita problemas de CORS.
+
+El frontend se comunica exclusivamente con el **API gateway** en `http://localhost:8090`. El proxy de Next.js reescribe `/api/*` → `BACKEND_URL/*` server-side, evitando CORS. El JWT se almacena en `localStorage` y se adjunta automáticamente en cada request via interceptor de axios.
 
 ## Endpoints usados por el frontend
 
 **Auth / Perfil**
-- `POST /api/v1/auth/login`
-- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/login` — obtiene el token JWT
+- `GET /api/v1/auth/me` — perfil del usuario autenticado
 
 **Estudiantes**
-- `POST /api/v1/students/create` (publico)
+- `POST /api/v1/students/create` (público, sin token)
 - `GET /api/v1/students` (ADMIN)
 - `GET /api/v1/students/{id}` (ADMIN)
 - `PATCH /api/v1/students/{id}/sanction` (ADMIN)
 
 **Catálogo**
-- `GET /api/v1/books`
-- `GET /api/v1/books/{id}`
-- `PATCH /api/v1/books/{id}/loan-count`
-- CRUD completo de libros: pendiente en backend.
+- `GET /api/v1/books` — listado paginado
+- `GET /api/v1/books/{id}` — detalle de libro
+- `GET /api/v1/books/categories` — lista de categorías
+- `POST /api/v1/books` (ADMIN)
+- `PUT /api/v1/books/{id}` (ADMIN)
+- `DELETE /api/v1/books/{id}` (ADMIN)
 
 **Préstamos**
-- `POST /api/v1/loans`
-- `GET /api/v1/loans/my-loans`
-- `GET /api/v1/loans/student/{studentId}`
-- `PATCH /api/v1/loans/{id}/mark-used`
-- `PATCH /api/v1/loans/{id}/return`
+- `POST /api/v1/loans` — crear préstamo
+- `GET /api/v1/loans/my-loans` — préstamos del estudiante autenticado
+- `GET /api/v1/loans/student/{studentId}` (ADMIN)
+- `PATCH /api/v1/loans/{id}/mark-used` — ping de actividad
+- `PATCH /api/v1/loans/{id}/return` — devolución manual
 
-## Ejemplo de flujo
-1. Estudiante se registra (`user`).
-2. Estudiante inicia sesión (`user`).
-3. Visualiza el catálogo (`catalog`).
-4. Solicita un préstamo (`loans`).
-5. Recibe notificaciones (`notification`).
+## Flujo principal
+
+1. Estudiante se registra (`POST /students/create`).
+2. Inicia sesión (`POST /auth/login`) y obtiene JWT.
+3. Visualiza el catálogo (`GET /books`).
+4. Solicita un préstamo (`POST /loans`).
+5. Lee el libro; el frontend envía pings periódicos (`PATCH /loans/{id}/mark-used`).
+6. Devuelve el libro (`PATCH /loans/{id}/return`) o el backend lo cierra automáticamente.
 
 ---

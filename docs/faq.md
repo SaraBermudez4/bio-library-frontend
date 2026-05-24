@@ -11,10 +11,10 @@ Pon `NEXT_PUBLIC_USE_MOCKS=false` y asegúrate de que los microservicios estén 
 - `ADMIN`: Puede gestionar libros y estudiantes.
 
 ### ¿Cómo se controla el acceso a los libros?
-El backend valida matrícula, GPA y licencias disponibles. La validación de sanciones en backend está pendiente; el frontend bloquea si `hasSanction` es true.
+El backend valida matrícula, GPA, licencias disponibles y sanciones activas. El frontend bloquea preventivamente si detecta `hasSanction=true`, pero la validación autoritativa está en el servicio `loans`.
 
 ### ¿Qué pasa si un estudiante no usa el libro?
-La expiración por inactividad está en implementación en backend. El frontend envía pings periódicos a `/loans/{id}/mark-used`.
+El servicio `loans` tiene jobs automáticos que corren cada 5 minutos: aviso SMS entre los 2 y 3 días sin usar, revocación automática a los 3 días, y cierre por vencimiento a los 15 días. El frontend envía pings a `/loans/{id}/mark-used` para evitar la revocación.
 
 ### ¿Dónde encuentro la documentación de los endpoints?
 Consulta Swagger/OpenAPI en cada microservicio backend o revisa la sección de integración en esta documentación.
