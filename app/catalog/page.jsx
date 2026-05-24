@@ -5,6 +5,8 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { useFetch } from '@/lib/hooks/useFetch';
 import { useAsync } from '@/lib/hooks/useAsync';
 import { bookService, loanService } from '@/lib/services';
+import { createBook, updateBook, deleteBookWithMessage } from '@/lib/services/bookActions';
+import { borrowBookWithMessage } from '@/lib/services/loanActions';
 import { BookCard } from '@/lib/components/shared/BookCard';
 import { BookFormModal } from '@/lib/components/shared/BookFormModal';
 import { ConfirmModal } from '@/lib/components/shared/ConfirmModal';
@@ -16,7 +18,6 @@ import { Button } from '@/lib/components/ui/button';
 import { Input } from '@/lib/components/ui/input';
 import { Alert, AlertDescription } from '@/lib/components/ui/alert';
 import { GPA_LIMIT, ROLE_ADMIN } from '@/lib/constants';
-import { borrowErrorMessage } from '@/lib/utils/error';
 import { AlertTriangle, ShieldAlert } from 'lucide-react';
 
 const PAGE_SIZE = 12;
@@ -69,11 +70,7 @@ export default function CatalogPage() {
   }
 
   async function handleBorrow() {
-    const result = await borrowAsync.execute(() =>
-      loanService.borrow(borrowTarget.id).catch((err) => {
-        throw new Error(borrowErrorMessage(err));
-      }),
-    );
+    const result = await borrowAsync.execute(() => borrowBookWithMessage(borrowTarget.id));
     if (!result) return;
     setBorrowTarget(null);
     refetchBooks();
@@ -82,15 +79,15 @@ export default function CatalogPage() {
 
   async function handleBookSubmit(backendData) {
     const result = bookFormState.book
-      ? await bookMutate.execute(() => bookService.update(bookFormState.book.id, backendData))
-      : await bookMutate.execute(() => bookService.create(backendData));
+      ? await bookMutate.execute(() => updateBook(bookFormState.book.id, backendData))
+      : await bookMutate.execute(() => createBook(backendData));
     if (!result) return;
     setBookFormState({ show: false, book: null });
     refetchBooks();
   }
 
   async function handleDelete() {
-    const result = await bookMutate.execute(() => bookService.remove(deleteTarget.id));
+    const result = await bookMutate.execute(() => deleteBookWithMessage(deleteTarget.id));
     if (!result) return;
     setDeleteTarget(null);
     refetchBooks();

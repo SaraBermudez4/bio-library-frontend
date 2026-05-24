@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/lib/components/ui/alert';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useFetch } from '@/lib/hooks/useFetch';
 import { loanService } from '@/lib/services';
+import { returnBook, returnLoanErrorMessage } from '@/lib/services/loanActions';
 import { LoanCard } from '@/lib/components/shared/LoanCard';
 import { ConfirmModal } from '@/lib/components/shared/ConfirmModal';
 import { ErrorAlert } from '@/lib/components/shared/ErrorAlert';
@@ -14,16 +15,8 @@ import { EmptyState } from '@/lib/components/shared/EmptyState';
 import { PageHeader } from '@/lib/components/shared/PageHeader';
 import { LoadingSpinner } from '@/lib/components/shared/LoadingSpinner';
 import { GPA_LIMIT } from '@/lib/constants';
-import { extractErrorMessage } from '@/lib/utils/error';
 import { CheckCircle2 } from 'lucide-react';
 
-function returnErrorMessage(err) {
-  const status = err?.response?.status;
-  if (status === 403) return 'No tienes permiso para devolver este préstamo.';
-  if (status === 404) return 'El préstamo no fue encontrado.';
-  if (status === 409) return 'Este libro ya fue devuelto anteriormente.';
-  return extractErrorMessage(err);
-}
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -54,13 +47,13 @@ export default function ProfilePage() {
     setReturnLoading(true);
     setReturnError(null);
     try {
-      await loanService.returnBook(pendingReturn.id);
+      await returnBook(pendingReturn.id);
       const title = pendingReturn.bookTitle;
       setPendingReturn(null);
       setSuccessMsg(`"${title}" devuelto exitosamente.`);
       refetch();
     } catch (err) {
-      setReturnError(returnErrorMessage(err));
+      setReturnError(returnLoanErrorMessage(err));
     } finally {
       setReturnLoading(false);
     }

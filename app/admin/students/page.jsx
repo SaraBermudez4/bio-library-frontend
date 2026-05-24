@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useFetch } from '@/lib/hooks/useFetch';
 import { useAsync } from '@/lib/hooks/useAsync';
 import { studentService } from '@/lib/services';
+import { updateStudentSanction } from '@/lib/services/studentActions';
 import { useAuth } from '@/lib/context/AuthContext';
 import { PageHeader } from '@/lib/components/shared/PageHeader';
 import { ConfirmModal } from '@/lib/components/shared/ConfirmModal';
@@ -52,7 +53,7 @@ export default function AdminStudentsPage() {
     const active = !sanctionTarget.hasSanction;
     const endDate = active && sanctionDate ? `${sanctionDate}T00:00:00` : null;
     const result = await mutate.execute(() =>
-      studentService.updateSanction(sanctionTarget.id, active, endDate),
+      updateStudentSanction(sanctionTarget.id, active, endDate),
     );
     if (!result) return;
     setSanctionTarget(null);

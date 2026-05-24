@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useFetch } from '@/lib/hooks/useFetch';
 import { useAsync } from '@/lib/hooks/useAsync';
 import { bookService } from '@/lib/services';
+import { createBook, updateBook, deleteBookWithMessage } from '@/lib/services/bookActions';
 import { PageHeader } from '@/lib/components/shared/PageHeader';
 import { BookFormModal } from '@/lib/components/shared/BookFormModal';
 import { ConfirmModal } from '@/lib/components/shared/ConfirmModal';
@@ -62,8 +63,8 @@ export default function AdminBooksPage() {
   async function handleSubmit(data) {
     const isEdit = !!formState.book;
     const result = isEdit
-      ? await saveBook.execute(() => bookService.update(formState.book.id, data))
-      : await saveBook.execute(() => bookService.create(data));
+      ? await saveBook.execute(() => updateBook(formState.book.id, data))
+      : await saveBook.execute(() => createBook(data));
     if (!result) return;
     closeForm();
     showSuccess(isEdit ? 'Libro actualizado correctamente.' : 'Libro registrado correctamente.');
@@ -78,28 +79,12 @@ export default function AdminBooksPage() {
   async function handleDelete() {
     if (deleteBook.isLoading) return;
     const id = deleteTarget.id;
-    let axiosError = null;
-
-    const result = await deleteBook.execute(() =>
-      bookService.remove(id).catch((err) => {
-        axiosError = err;
-        throw err;
-      })
-    );
-
-    if (result === null) {
-      if (axiosError?.response?.status === 404) {
-        setDeleteTarget(null);
-        deleteBook.reset();
-        showSuccess('El libro ya no existía en el catálogo.');
-        refetch();
-      }
-      return;
-    }
+    const result = await deleteBook.execute(() => deleteBookWithMessage(id));
+    if (!result) return;
 
     setDeleteTarget(null);
     deleteBook.reset();
-    showSuccess('Libro eliminado correctamente.');
+    showSuccess(result.message);
     refetch();
   }
 
