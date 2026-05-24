@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useFetch } from '@/lib/hooks/useFetch';
 import { useAsync } from '@/lib/hooks/useAsync';
 import { bookService } from '@/lib/services';
@@ -29,17 +29,12 @@ export default function AdminBooksPage() {
   const saveBook = useAsync();
   const deleteBook = useAsync();
 
-  const [localBooks, setLocalBooks] = useState(null);
   const [formState, setFormState] = useState({ show: false, book: null });
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [successMsg, setSuccessMsg] = useState('');
   const successTimer = useRef(null);
 
-  useEffect(() => {
-    if (data?.content) setLocalBooks(data.content);
-  }, [data]);
-
-  const books = localBooks ?? data?.content ?? [];
+  const books = data?.content ?? [];
 
   function showSuccess(msg) {
     if (successTimer.current) clearTimeout(successTimer.current);
@@ -94,18 +89,18 @@ export default function AdminBooksPage() {
 
     if (result === null) {
       if (axiosError?.response?.status === 404) {
-        setLocalBooks((prev) => (prev ?? []).filter((b) => b.id !== id));
         setDeleteTarget(null);
         deleteBook.reset();
-        showSuccess('El libro ya no existía en el catálogo y fue removido de la lista.');
+        showSuccess('El libro ya no existía en el catálogo.');
+        refetch();
       }
       return;
     }
 
-    setLocalBooks((prev) => (prev ?? []).filter((b) => b.id !== id));
     setDeleteTarget(null);
     deleteBook.reset();
     showSuccess('Libro eliminado correctamente.');
+    refetch();
   }
 
   return (
