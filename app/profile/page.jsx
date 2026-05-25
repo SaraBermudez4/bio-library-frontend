@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import { useFetch } from '@/lib/hooks/useFetch';
 import { loanService } from '@/lib/services';
 import { returnBook, returnLoanErrorMessage } from '@/lib/services/loanActions';
+import { getSuccessMessage } from '@/lib/utils/apiMessages';
 import { LoanCard } from '@/lib/components/shared/LoanCard';
 import { ConfirmModal } from '@/lib/components/shared/ConfirmModal';
 import { ErrorAlert } from '@/lib/components/shared/ErrorAlert';
@@ -50,7 +51,7 @@ export default function ProfilePage() {
       await returnBook(pendingReturn.id);
       const title = pendingReturn.bookTitle;
       setPendingReturn(null);
-      setSuccessMsg(`"${title}" devuelto exitosamente.`);
+      setSuccessMsg(getSuccessMessage('loan.return.success', { title }));
       refetch();
     } catch (err) {
       setReturnError(returnLoanErrorMessage(err));

@@ -5,6 +5,7 @@ import { useFetch } from '@/lib/hooks/useFetch';
 import { useAsync } from '@/lib/hooks/useAsync';
 import { bookService } from '@/lib/services';
 import { createBook, updateBook, deleteBookWithMessage } from '@/lib/services/bookActions';
+import { getSuccessMessage } from '@/lib/utils/apiMessages';
 import { PageHeader } from '@/lib/components/shared/PageHeader';
 import { BookFormModal } from '@/lib/components/shared/BookFormModal';
 import { ConfirmModal } from '@/lib/components/shared/ConfirmModal';
@@ -67,7 +68,7 @@ export default function AdminBooksPage() {
       : await saveBook.execute(() => createBook(data));
     if (!result) return;
     closeForm();
-    showSuccess(isEdit ? 'Libro actualizado correctamente.' : 'Libro registrado correctamente.');
+    showSuccess(isEdit ? getSuccessMessage('book.update.success') : getSuccessMessage('book.create.success'));
     refetch();
   }
 

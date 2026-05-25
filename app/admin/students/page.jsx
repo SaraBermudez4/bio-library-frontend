@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useFetch } from '@/lib/hooks/useFetch';
 import { useAsync } from '@/lib/hooks/useAsync';
 import { studentService } from '@/lib/services';
 import { updateStudentSanction } from '@/lib/services/studentActions';
 import { useAuth } from '@/lib/context/AuthContext';
+import { getSuccessMessage } from '@/lib/utils/apiMessages';
 import { PageHeader } from '@/lib/components/shared/PageHeader';
 import { ConfirmModal } from '@/lib/components/shared/ConfirmModal';
 import { ErrorAlert } from '@/lib/components/shared/ErrorAlert';
@@ -16,6 +17,7 @@ import { Button } from '@/lib/components/ui/button';
 import { Badge } from '@/lib/components/ui/badge';
 import { Input } from '@/lib/components/ui/input';
 import { Label } from '@/lib/components/ui/label';
+import { Alert, AlertDescription } from '@/lib/components/ui/alert';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/lib/components/ui/table';
@@ -30,6 +32,17 @@ export default function AdminStudentsPage() {
   const [search, setSearch] = useState('');
   const [sanctionTarget, setSanctionTarget] = useState(null);
   const [sanctionDate, setSanctionDate] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const successTimer = useRef(null);
+
+  useEffect(() => () => { if (successTimer.current) clearTimeout(successTimer.current); }, []);
+
+  function showSuccess(msg) {
+    if (successTimer.current) clearTimeout(successTimer.current);
+    setSuccessMsg(msg);
+    successTimer.current = setTimeout(() => setSuccessMsg(''), 4000);
+  }
+
   const { data, isLoading, error, refetch } = useFetch(
     () => studentService.getAll({ page, size: PAGE_SIZE, university: user?.university }),
     [page, user?.university],
@@ -50,20 +63,29 @@ export default function AdminStudentsPage() {
   const totalPages = data?.totalPages ?? 1;
   const mutate = useAsync();
   async function handleSanctionToggle() {
+    if (mutate.isLoading) return;
     const active = !sanctionTarget.hasSanction;
-    const endDate = active && sanctionDate ? `${sanctionDate}T00:00:00` : null;
-    const result = await mutate.execute(() =>
+    const endDate = active && sanctionDate ? sanctionDate : null;
+    const ok = await mutate.execute(() =>
       updateStudentSanction(sanctionTarget.id, active, endDate),
     );
-    if (!result) return;
+    if (ok === null) return;
     setSanctionTarget(null);
     setSanctionDate('');
+    showSuccess(getSuccessMessage(active ? 'student.sanction.apply.success' : 'student.sanction.remove.success'));
     refetch();
   }
 
   return (
     <>
       <PageHeader title="Gestión de estudiantes" />
+
+      {successMsg && (
+        <Alert className="mb-4 border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+          <AlertDescription>{successMsg}</AlertDescription>
+        </Alert>
+      )}
+
       <ErrorAlert error={error} />
 
       <Input
@@ -116,7 +138,7 @@ export default function AdminStudentsPage() {
                       <Button
                         variant={student.hasSanction ? 'outline' : 'destructive'}
                         size="sm"
-                        onClick={() => setSanctionTarget(student)}
+                        onClick={() => { mutate.reset(); setSanctionTarget(student); }}
                       >
                         {student.hasSanction ? 'Quitar sanción' : 'Sancionar'}
                       </Button>
@@ -164,6 +186,7 @@ export default function AdminStudentsPage() {
         confirmLabel={sanctionTarget?.hasSanction ? 'Quitar sanción' : 'Sancionar'}
         variant={sanctionTarget?.hasSanction ? 'success' : 'danger'}
         isLoading={mutate.isLoading}
+        error={mutate.error}
       >
         <p>
           {sanctionTarget?.hasSanction
