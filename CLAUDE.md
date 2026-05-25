@@ -19,7 +19,11 @@ Proyecto integrador de Arquitectura de Software II. Sistema de préstamo digital
 
 1. **Validación de estudiante:** Un préstamo solo es válido si el sistema académico confirma matrícula activa y sin sanciones vigentes.
 2. **Límite por promedio:** GPA < 3.2 → máximo 1 libro activo a la vez. GPA >= 3.2 → sin límite.
-3. **Expiración automática:** La licencia expira si no hay actividad (scroll/lectura) en los últimos 30 minutos. El frontend envía pings periódicos con `useActivityPing` → `PATCH /v1/loans/{id}/mark-used`.
+3. **Expiración por inactividad:** Si el préstamo no ha sido marcado como usado (`hasUsed`), un job automático en el backend actúa así:
+   - **Entre 2 y 3 días sin usar:** envía SMS de advertencia.
+   - **≥ 3 días sin usar:** revoca el préstamo automáticamente + SMS.
+   - **≥ 15 días activo (cualquier caso):** cierra el préstamo por vencimiento + SMS.
+   El frontend envía pings con `useActivityPing` → `PATCH /v1/loans/{id}/mark-used` para marcar el libro como usado y evitar la revocación.
 
 Las reglas 1 y 2 son **validadas en el backend**. El frontend bloquea el botón "Prestar" preventivamente según `hasSanction`, `gpa` y `activeLoans` del usuario, pero la validación autoritativa está en `loans`.
 
@@ -29,13 +33,14 @@ Las reglas 1 y 2 son **validadas en el backend**. El frontend bloquea el botón 
 
 | Servicio          | Puerto | Tech                     | Descripción                                       |
 | ----------------- | ------ | ------------------------ | ------------------------------------------------- |
+| `api-gateway`     | 8090   | Spring Cloud Gateway     | Punto de entrada único — JWT, CORS y enrutamiento |
 | `user`            | 8080   | Spring Boot + PostgreSQL | Auth (JWT), registro y gestión de estudiantes     |
 | `university-mock` | 8081   | Spring Boot              | Simula sistema académico (carnet, matrícula, GPA) |
 | `catalog`         | 8082   | Spring Boot + MongoDB    | Catálogo de libros y control de licencias         |
 | `loans`           | 8083   | Spring Boot + PostgreSQL | Préstamos, reglas de negocio, devolución          |
 | `notification`    | 8084   | Spring Boot + RabbitMQ   | Notificaciones de eventos (SMS via Twilio)        |
 
-**Importante para el proxy:** Cada servicio corre en un puerto distinto. Sin un API gateway/nginx en frente, el proxy de Next.js (`BACKEND_URL`) solo puede apuntar a un puerto. Para conectar el backend real se necesita que el equipo levante nginx enrutando por prefijo de path.
+**El gateway centraliza todo:** el frontend solo habla con `:8090`. El proxy de Next.js (`BACKEND_URL`) apunta al gateway. El gateway enruta `/api/v1/auth/**` → user, `/api/v1/students/**` → user, `/api/v1/books/**` → catalog, `/api/v1/loans/**` → loans.
 
 ---
 
@@ -130,23 +135,38 @@ bio-library-frontend/
 }
 ```
 
-### Book (`GET /api/v1/books`)
+### Book — respuesta cruda del backend (`GET /api/v1/books`, `GET /api/v1/books/{id}`)
 ```js
 {
   id: string,                  // MongoDB ObjectId
   isbn: string,
   title: string,
-  author: { name: string, lastName: string },
-  synopsis: string,
+  author: string,              // nombre completo como string, ej. "Robert C. Martin"
+  category: string,            // enum: 'SOFTWARE_ENGINEERING', 'MATHEMATICS', etc.
+  description: string,
   pdfUrl: string,
-  coverImageUrl: string | null,
-  license: {
-    maxConcurrentLoans: number,
-    activeLoanCount: number
-  },
-  active: boolean
+  imagenUrl: string | null,
+  totalLicenses: number,
+  availableLicenses: number
 }
 ```
+
+`real.js` normaliza esta respuesta en `normalizeBook()` al shape interno del FE:
+```js
+{
+  id, isbn, title,
+  author: { name: string, lastName: string },  // split del string
+  category,
+  synopsis,          // ← description del backend
+  pdfUrl,
+  coverImageUrl,     // ← imagenUrl del backend
+  license: {
+    maxConcurrentLoans,   // ← totalLicenses
+    activeLoanCount,      // ← totalLicenses - availableLicenses
+  }
+}
+```
+Usar siempre el shape normalizado dentro del frontend. Al enviar datos al backend (create/update), `toBookRequest()` deshace la transformación.
 
 ### Loan (`GET /api/v1/loans/my-loans`)
 ```js
@@ -174,16 +194,17 @@ El switch entre mocks y real lo controla `NEXT_PUBLIC_USE_MOCKS`.
 | ------------------------ | --------------------------------------------------------- |
 | `login(email, password)` | POST /v1/auth/login + GET /v1/auth/me → `{ user, token }` |
 | `me()`                   | GET /v1/auth/me                                           |
-| `register(data)`         | POST /v1/students/create (público, sin token)             |
+| `register(data)`         | POST /v1/students/create (público, sin token requerido)   |
 
 ### bookService
-| Método             | Descripción                                              |
-| ------------------ | -------------------------------------------------------- |
-| `getAll()`         | GET /v1/books?page=0&size=100                            |
-| `getById(id)`      | GET /v1/books/{id}                                       |
-| `create(data)`     | POST /v1/books ⚠️ endpoint pendiente en backend (catalog) |
-| `update(id, data)` | PUT /v1/books/{id} ⚠️ endpoint pendiente en backend       |
-| `remove(id)`       | DELETE /v1/books/{id} ⚠️ endpoint pendiente en backend    |
+| Método             | Descripción                                        |
+| ------------------ | -------------------------------------------------- |
+| `getAll(params?)`  | GET /v1/books?page=0&size=100 → shape normalizado  |
+| `getById(id)`      | GET /v1/books/{id} → shape normalizado             |
+| `getCategories()`  | GET /v1/books/categories → string[]                |
+| `create(data)`     | POST /v1/books (serializa con `toBookRequest`)     |
+| `update(id, data)` | PUT /v1/books/{id} (serializa con `toBookRequest`) |
+| `remove(id)`       | DELETE /v1/books/{id}                              |
 
 ### loanService
 | Método                               | Descripción                                             |
@@ -201,7 +222,7 @@ El switch entre mocks y real lo controla `NEXT_PUBLIC_USE_MOCKS`.
 | `getAll(params)`                              | GET /v1/students (ADMIN)                 |
 | `getById(id)`                                 | GET /v1/students/{id} (ADMIN)            |
 | `updateSanction(id, active, sanctionEndDate)` | PATCH /v1/students/{id}/sanction (ADMIN) |
-| `create(data)`                                | POST /v1/students/create (ADMIN)         |
+| `create(data)`                                | POST /v1/students/create (público)       |
 
 ---
 
@@ -209,7 +230,7 @@ El switch entre mocks y real lo controla `NEXT_PUBLIC_USE_MOCKS`.
 
 ```bash
 NEXT_PUBLIC_USE_MOCKS=true    # false = llama al backend real vía proxy
-BACKEND_URL=http://localhost:8080/api  # server-side, usado por los rewrites
+BACKEND_URL=http://localhost:8090/api  # server-side, apunta al API gateway (no a un micro individual)
 ```
 
 Con `NEXT_PUBLIC_USE_MOCKS=true` el frontend funciona sin ningún backend.
@@ -228,16 +249,13 @@ Con `NEXT_PUBLIC_USE_MOCKS=true` el frontend funciona sin ningún backend.
 - `/admin/students` — tabla paginada, sanciones, detalle
 
 ### Pendiente para conectar backend real
-1. **API gateway:** el equipo debe exponer todos los servicios en un solo puerto (nginx)
-2. **Catalog CRUD:** se debe agregar POST/PUT/DELETE en `catalog`
-3. **Register endpoint:** se debe confirmar si hay `POST /v1/auth/register` público o solo admin crea estudiantes
-4. **Deshabilitar mocks:** cambiar `NEXT_PUBLIC_USE_MOCKS=false` en `.env.local`
+1. **Deshabilitar mocks:** cambiar `NEXT_PUBLIC_USE_MOCKS=false` en `.env.local` y asegurarse de que `BACKEND_URL=http://localhost:8090/api`.
 
 ---
 
 ## CORS — cómo funciona el proxy
 
-El proxy de `next.config.mjs` reescribe `/api/*` → `BACKEND_URL/*` server-side. El navegador nunca hace requests cross-origin. Con un API gateway en frente, `BACKEND_URL` apuntaría al gateway (ej. `http://localhost:8080`).
+El proxy de `next.config.mjs` reescribe `/api/*` → `BACKEND_URL/*` server-side. El navegador nunca hace requests cross-origin. `BACKEND_URL` apunta al API gateway (`http://localhost:8090/api`), que es el único punto de entrada expuesto.
 
 ---
 

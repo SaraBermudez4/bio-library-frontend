@@ -15,18 +15,19 @@
 
 ## 4. Solicitud de Préstamo
 - El estudiante solicita un libro.
-- El backend valida:
-  - Licencias disponibles
-  - Límite por GPA
-- El frontend también bloquea si hay sanción activa.
-- Si todo es válido, se crea el préstamo y se actualiza el catálogo.
+- El frontend bloquea el botón si detecta `hasSanction=true`, `gpa<3.2` con préstamo activo, o sin licencias disponibles (validación preventiva).
+- El backend valida autoritativamente: sanción activa (→ 403), GPA (→ 422), licencias (→ 422).
+- Si todo es válido, se crea el préstamo, se actualiza el catálogo y se envía SMS de confirmación.
 
 ## 5. Devolución de Libro
 - El estudiante puede devolver el libro manualmente.
-- El sistema libera la licencia.
+- El sistema libera la licencia y envía SMS de confirmación.
 
 ## 6. Expiración Automática
-- El préstamo tiene fecha de fin (10 días desde el inicio).
-- La expiración por inactividad está en implementación en backend.
+- El préstamo tiene fecha de fin de 10 días desde el inicio.
+- Jobs automáticos en `loans` (cada 5 minutos):
+  - Entre 2 y 3 días sin marcar como usado → SMS de advertencia.
+  - ≥ 3 días sin marcar como usado → revocación automática + SMS.
+  - ≥ 15 días activo → cierre por vencimiento + SMS.
 
 ---

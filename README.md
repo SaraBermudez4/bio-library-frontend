@@ -36,7 +36,7 @@ En la red de universidades, los libros digitales tienen un alto costo de licenci
    ```
 3. Copia el archivo de entorno y configura si es necesario:
    ```bash
-   cp .env.local.example .env.local
+   cp .env.example .env
    ```
 4. Ejecuta en modo desarrollo:
    ```bash
@@ -45,13 +45,14 @@ En la red de universidades, los libros digitales tienen un alto costo de licenci
 
 ## Variables de Entorno
 
-- `NEXT_PUBLIC_USE_MOCKS=true` (por defecto, usa mocks locales)
-- `BACKEND_URL=http://localhost:8080/api` (para conectar con backend real)
+- `BACKEND_URL=http://localhost:8090/api` (para conectar con backend real)
 
 ## Estructura del Proyecto
 
 - `app/` — Páginas y rutas (Next.js App Router)
 - `lib/` — Contextos, hooks, servicios y componentes compartidos
+   - `lib/services/real.js` — Endpoints HTTP puros
+   - `lib/services/*Actions.js` — Orquestación ligera (mensajes, manejo de errores)
 - `public/` — Recursos estáticos
 
 ## Modelos de Datos

@@ -12,10 +12,12 @@
    - Cada libro tiene un máximo de licencias concurrentes.
    - El backend bloquea préstamos si el conteo activo alcanza el máximo.
 5. **Sanciones**
-   - El frontend bloquea préstamos si `hasSanction` es true.
-   - Pendiente: validación de sanciones en backend al crear préstamo.
-6. **Inactividad**
-   - El frontend envía pings periódicos a `/loans/{id}/mark-used`.
-   - La lógica de expiración por inactividad está en implementación en backend.
+   - El frontend bloquea el botón "Prestar" si `hasSanction` es true (validación preventiva).
+   - El backend también valida la sanción en `loans` vía Feign call a `user` → 403 si está activa.
+6. **Inactividad y vencimiento (jobs automáticos en `loans`, cada 5 min)**
+   - El frontend envía pings a `/loans/{id}/mark-used` para marcar el préstamo como usado.
+   - Entre **2 y 3 días sin usar**: SMS de advertencia.
+   - **≥ 3 días sin usar**: revocación automática + SMS.
+   - Si el préstamo lleva **≥ 15 días activo**: cierre por vencimiento + SMS.
 
 ---
