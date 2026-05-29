@@ -1,5 +1,6 @@
 - [Inicio](/)
 - [Arquitectura](arquitectura.md)
+- [Diagramas C4](c4.md)
 - [Backend](backend.md)
 - [Reglas de Negocio](reglas-negocio.md)
 - [Instalación](instalacion.md)
