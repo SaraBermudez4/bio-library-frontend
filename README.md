@@ -70,12 +70,12 @@ En la red de universidades, los libros digitales tienen un alto costo de licenci
 
 ## Tabla de Entregables
 
-| Entregable                                  | Link                                                  |
-| ------------------------------------------- | ----------------------------------------------------- |
-| Frontend (Next.js)                          | https://github.com/SaraBermudez4/bio-library-frontend |
-| Backend (microservicios)                    | https://github.com/carolinaechevca-arch/bio-library   |
-| RFC PDF (atributos de calidad + trade-offs) | pendiente                                             |
-| Modelo C4 Nivel 2 (Contenedores)            | pendiente                                             |
+| Entregable                       | Link                                                                                                                                |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend (Next.js)               | https://github.com/SaraBermudez4/bio-library-frontend                                                                               |
+| Backend (microservicios)         | https://github.com/carolinaechevca-arch/bio-library                                                                                 |
+| RFC                              | https://docs.google.com/document/d/1zCZiMBYlxaYjqazXoUSDi_EEUgUb4Ssd/edit?usp=sharing&ouid=108049573563740598139&rtpof=true&sd=true |
+| Modelo C4 Nivel 2 (Contenedores) | https://drive.google.com/file/d/1ZAwayiQwDUBltbvQAk1xTRTa_U-NW8xX/view?usp=sharing                                                  |
 
 ## Documentación Completa
 

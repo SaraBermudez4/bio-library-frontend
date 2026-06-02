@@ -10,18 +10,19 @@ BioLibrary es un sistema de préstamo digital de libros para una red de universi
 
 ## Tabla de Entregables
 
-| Entregable                                  | Link                                                                                                                                |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Frontend (Next.js)                          | https://github.com/SaraBermudez4/bio-library-frontend                                                                               |
-| Backend (microservicios)                    | https://github.com/carolinaechevca-arch/bio-library                                                                                 |
-| RFC PDF (atributos de calidad + trade-offs) | https://docs.google.com/document/d/1zCZiMBYlxaYjqazXoUSDi_EEUgUb4Ssd/edit?usp=sharing&ouid=108049573563740598139&rtpof=true&sd=true |
-| Modelo C4 Nivel 2 (Contenedores)            | https://drive.google.com/file/d/1ZAwayiQwDUBltbvQAk1xTRTa_U-NW8xX/view?usp=sharing                                                  |
+| Entregable                       | Link                                                                                                                                |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Frontend (Next.js)               | https://github.com/SaraBermudez4/bio-library-frontend                                                                               |
+| Backend (microservicios)         | https://github.com/carolinaechevca-arch/bio-library                                                                                 |
+| RFC                              | https://docs.google.com/document/d/1zCZiMBYlxaYjqazXoUSDi_EEUgUb4Ssd/edit?usp=sharing&ouid=108049573563740598139&rtpof=true&sd=true |
+| Modelo C4 Nivel 2 (Contenedores) | https://drive.google.com/file/d/1ZAwayiQwDUBltbvQAk1xTRTa_U-NW8xX/view?usp=sharing                                                  |
 
 ---
 
 ## Índice
 
 - [Arquitectura General](arquitectura.md)
+- [Diagramas C4](c4.md)
 - [Backend](backend.md)
 - [Reglas de Negocio](reglas-negocio.md)
 - [Instalación y Ejecución](instalacion.md)
